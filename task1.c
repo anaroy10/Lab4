@@ -65,7 +65,7 @@ void quit() {
 //************************************ Task 1a ************************************
 void loadIntoMemory() {
     if (strcmp(file_name, "") == 0) {
-        perror("Error: file name is empty\n");
+        fprintf(stderr, "Error: file name is empty\n");
         return;
     }
 
@@ -90,9 +90,12 @@ void loadIntoMemory() {
         fprintf(stderr, "Debug: file_name='%s' location=0x%x length=%d\n", file_name, location, length);
     }
 
+    if (length * unit_size > BUF_SIZE) {
+        fprintf(stderr, "Error: data is too big. Only first 10000 bytes is taken.\n");
+        length = BUF_SIZE / unit_size;
+    }
+
     fseek(fp, location, SEEK_SET);
-    size_t to_read = length * unit_size;
-    if (to_read > BUF_SIZE) to_read = BUF_SIZE;
 
     mem_count = fread(mem_buf, unit_size, length, fp);
     printf("Loaded %zu units into memory\n\n", mem_count);
@@ -104,9 +107,9 @@ void loadIntoMemory() {
 void toggle_display_mode() {
     display_mode = !display_mode;
     if (display_mode)
-        printf("Display flag now on, decimal representation\n\n");
+        printf("Decimal display flag now on, decimal representation\n\n");
     else
-        printf("Display flag now off, hexadecimal representation\n\n");
+        printf("Decimal display flag now off, hexadecimal representation\n\n");
 }
 
 //************************************ Task 1c ************************************
