@@ -114,45 +114,38 @@ void toggle_display_mode() {
 
 //************************************ Task 1c ************************************
 void memory_display() {
+    static char* hex_formats[] = {"%02X\n", "%04X\n", "No such unit", "%08X\n"};
+    static char* dec_formats[] = {"%d\n", "%d\n", "No such unit", "%d\n"};
+    
     printf("Enter address and length\n");
-
     char input[128];
     fgets(input, sizeof(input), stdin);
 
     unsigned int addr;
     int u;
-
     if (sscanf(input, "%x %d", &addr, &u) != 2) {
         printf("Invalid input\n\n");
         return;
     }
 
-    unsigned char *start = (addr == 0) ? mem_buf : (unsigned char *)addr;
+    unsigned char *ptr = (addr == 0) ? mem_buf : (unsigned char *)addr;
 
-    printf("%s\n", display_mode ? "Decimal" : "Hexadecimal");
-    printf("=======\n");
+    printf("%s\n=======\n", display_mode ? "Decimal" : "Hexadecimal");
 
     for (int i = 0; i < u; i++) {
-        if (display_mode) { // Decimal
-            switch (unit_size) {
-                case 1: printf("%d\n", *(start + i)); break;
-                case 2: printf("%d\n", *((short *)(start + i * 2))); break;
-                case 4: printf("%d\n", *((int *)(start + i * 4))); break;
-            }
-        } else { // Hexadecimal
-            switch (unit_size) {
-                case 1: printf("%02X\n", *(start + i)); break;
-                case 2: printf("%04X\n", *((unsigned short *)(start + i * 2))); break;
-                case 4: printf("%08X\n", *((unsigned int *)(start + i * 4))); break;
-            }
-        }
+        int val = 0;
+        if (unit_size == 1) val = *((unsigned char*)(ptr + i * 1));
+        else if (unit_size == 2) val = *((unsigned short*)(ptr + i * 2));
+        else if (unit_size == 4) val = *((unsigned int*)(ptr + i * 4));
+
+        char* format = display_mode ? dec_formats[unit_size - 1] : hex_formats[unit_size - 1];
+        printf(format, val);
     }
-    
     printf("\n");
 }
 
 //************************************ Task 1d ************************************
-void saveIntoFile() {
+void save_into_file() {
     if (strcmp(file_name, "") == 0) {
         printf("Error: file name is empty\n\n");
         return;
@@ -182,7 +175,7 @@ void saveIntoFile() {
 
     size_t bytes_to_write = length * unit_size;
     off_t file_size = lseek(fd, 0, SEEK_END);
-    if (target + bytes_to_write > (size_t)file_size) {
+    if (target > (size_t)file_size) {
         printf("Error: target-location out of file bounds\n\n");
         close(fd);
         return;
@@ -212,13 +205,15 @@ void memory_modify() {
         printf("Invalid input format\n\n");
         return;
     }
+
     if (debug_mode)
         fprintf(stderr, "Debug: location=0x%x, val=0x%x\n", location, val);
-    if (location >= mem_count) {
+
+    if (location + unit_size > mem_count * unit_size) {
         printf("Error: location out of bounds\n\n");
         return;
     }
-    unsigned char *target = mem_buf + location * unit_size;
+    unsigned char *target = mem_buf + location;
     switch (unit_size) {
         case 1: *target = (unsigned char)val; break;
         case 2: *((unsigned short *)target) = (unsigned short)val; break;
@@ -234,9 +229,9 @@ menu_item menu[] = {
     {"Load Into Memory", loadIntoMemory},
     {"Toggle Display Mode", toggle_display_mode},
     {"Memory Display", memory_display},
-    {"Save Into File", saveIntoFile},
+    {"Save Into File", save_into_file},
     {"Memory Modify", memory_modify},
-    {"Quit\n", quit},
+    {"Quit", quit},
     {NULL, NULL}
 };
 
